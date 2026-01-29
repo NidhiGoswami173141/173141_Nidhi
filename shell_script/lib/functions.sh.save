@@ -1,0 +1,147 @@
+
+#!/bin/bash
+
+####################################################################################
+#Author : Nidhi Goswami 
+#Created : 21-01-2026
+#Discription : function for addition , multiplication , substration and division
+####################################################################################
+
+#Q1
+# Number check is valid or not if there is character or special symbol so this is give an error
+
+#validate_number() {
+  #  local num="$1"
+   #  local var_name="$2"
+
+    #if [[ "$num" =~ ^-?[0-9]+$ ]]; then
+     #   echo "$num"      # <<< IMPORTANT
+      #  return 0
+    #else
+     #   echo "$var_name is not a valid number"
+      #  return 1
+    #fi
+#}
+
+
+#for number check is large or not
+is_very_large() {
+    if [ ${#1} -gt 9 ]; then
+        return 0   
+    else
+        return 1   
+    fi
+}
+
+
+# Addition
+add() {
+    echo $(( $1 + $2 ))
+}
+
+# Subtraction
+sub() {
+    echo $(( $1 - $2 ))
+}
+
+# Multiplication 
+mul() {
+    echo $(( $1 * $2 ))
+}
+
+# Division
+div() {
+    local n1=$1
+    local n2=$    if [ "$n1" -eq 0 ] && [ "$n2" -eq 0 ]; then
+        echo "div : undefined"
+    elif [ "$n2" -eq 0 ]; then
+        echo "div : can not divide by zero instead error"
+    else
+        echo "scale=1; $n1 / $n2" | bc
+    fi
+
+
+
+}
+
+#Q2
+#for checking number is ever or odd
+
+
+# Function for checking value 
+validate_number() {
+    local num="$1"
+    local var_name="$2"
+
+    # Check for blank input
+    if [[ -z "$num" ]]; then
+        echo "Not a valid number"
+        return 1
+    fi
+
+    # 1. Check if it looks like a valid number format (integer or float)
+    if [[ "$num" =~ ^[+-]?[0-9]*\.?[0-9]+$ ]]; then
+        
+        # 2. If it contains a dot, check if the part after the dot is all zeros
+        if [[ "$num" == *.* ]]; then
+            # Extract the part after the dot using parameter expansion
+            local fractional_part="${num#*.}" 
+
+            # Check if fractional part contains only zeros
+            # We strip trailing zeros and check if the result is empty or just a decimal point
+            if [[ "$fractional_part" =~ ^0+$ ]]; then
+                # This is a valid integer representation (e.g., "6.0", "0.0")
+                echo "$num"
+                return 0
+            else
+                # This is an invalid float (e.g., "5.5")
+                echo "float is not valid"
+                return 1
+            fi
+        else
+            # No dot means it's a standard integer, which is valid
+            echo "$num"
+            return 0
+        fi
+    else
+        # For non-numeric inputs like letters (a), provide the generic error
+        echo "Not a valid number"
+        return 1
+    fi
+}
+
+# Function to check if a valid integer (including 6.0 representation) is even or odd
+check_even_odd() {
+    local n="$1"
+    
+    # If the number has a .0 suffix, strip it so Bash arithmetic can handle it
+    if [[ "$n" == *.0 ]]; then
+        n="${n%.0}"
+    fi
+
+    # Use pure bash arithmetic expansion (( )) for modulo operation
+    if (( n % 2 == 0 )); then
+        echo "Even number"
+    else
+        echo "Odd number"
+    fi
+}
+
+
+
+
+#Q3 for check which number is greater than 3 number 
+
+
+largest_number() {
+    largest=$1
+
+    if [ $2 -gt $largest ]; then
+        largest=$2
+    fi
+
+    if [ $3 -gt $largest ]; then
+        largest=$3
+    fi
+    echo $largest
+}
