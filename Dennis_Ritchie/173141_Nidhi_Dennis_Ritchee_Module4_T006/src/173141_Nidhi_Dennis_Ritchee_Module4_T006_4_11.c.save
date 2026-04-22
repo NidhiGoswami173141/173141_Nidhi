@@ -1,0 +1,8 @@
+/*
+Author: Nidhi Goswami
+Date: 9-3-2026
+Decscription : Modify getop so that it doesn't need to use ungetch. Hint: use an internal static variable.
+*/
+
+
+
