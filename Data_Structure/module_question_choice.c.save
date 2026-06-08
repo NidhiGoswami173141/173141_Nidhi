@@ -1,0 +1,173 @@
+#include<stdio.h>
+#include"header.h"
+#include<stdint.h>
+
+
+void type_question_choice(){
+
+     int32_t type;
+     int32_t question;
+
+     printf("---------------------------------------\n");
+     printf("          Data Structure topic         \n");
+     printf("---------------------------------------\n");
+
+
+     printf("1. linked list\n");
+     printf("2. queue\n");
+     printf("3. stack\n");
+     printf("4. binary tree\n");
+     printf("5. circular linked list\n");
+
+     printf("enter topic choice:\n");
+     scanf("%d",&type);
+
+     switch(type){
+         case 1:
+             printf("--------------------------------------\n");
+             printf("1. count\n");
+             printf("2. access value\n");
+             printf("3. delete list\n");
+             printf("4. pop operation\n");
+             printf("5. insert nth node\n");
+             printf("6. sorted insert\n");
+             printf("7. sorted insert list\n");
+             printf("8. append\n");
+             printf("9. remove duplicate\n");
+             printf("10.move node\n");
+             printf("--------------------------------------\n");
+             printf("enter question number:\n");
+             scanf("%d",&question);
+             switch(question){
+                  case 1:
+                     CountTest();
+                     break;
+                  case 2:
+                     GetNthTest();
+                     break;
+                  case 3:
+                     DeleteListTest();
+                     break;
+                  case 4:
+                     PopTest();
+                     break;
+                  case 5:
+                     InsertNthTest();
+                     break;
+                  case 6:
+                     SortedInsertTest();
+                     break;
+                  case 7:
+                     InsertSortTest();
+                     break;
+                  case 8:
+                     AppendTest();
+                     break;
+                  case 9:
+                     RemoveDuplicatesTest();
+                     break;
+                  case 10:
+                     MoveNodeTest();
+                     break;
+             }break;
+          case 2:
+               printf("--------------------------------------\n");
+               printf("1. palindrome\n");
+               printf("2. circularqueue\n");
+               printf("3. To Do list\n");
+               printf("--------------------------------------\n");
+               printf("enter question number:\n");
+               scanf("%d",&question);
+               switch(question){
+                  case 1:
+                     PelindromeTest();
+                     break;
+                  case 2:
+                     CircularQueue_Q2();
+                     break;
+                  case 3:
+                     TodoListTest();
+                     break;
+             }break;
+        case 3:
+             printf("--------------------------------------\n");
+             printf("1. bracket matching\n");
+             printf("--------------------------------------\n");
+             printf("enter question number:\n");
+             scanf("%d",&question);
+             switch(question){
+                 case 1:
+                    BracketMatchingTest();
+                    break;
+             }break;
+       case 4:
+             printf("--------------------------------------\n");
+             printf("1. Tree Implementation\n");
+             printf("2. preorder , post order, in order traversal\n");
+             printf("3. binary search\n");
+             printf("4. YPK Task\n");
+             printf("--------------------------------------\n");
+             printf("enter question number:\n");
+             scanf("%d",&question);
+             switch(question){
+                  int choice;
+                  case 1:
+                     printf("1. array implimentation\n");
+                     printf("2. linked list implemantion\n");
+                     printf("enter your choice:\n");
+                     scanf("%d",&choice);
+                     switch(choice){
+                          case 1:
+                             Array_tree_implementaation();
+                             break;
+                          case 2:
+                             linked_list_tree_implementation();
+                             break;
+                     }break;
+                  case 2:
+                     printf("1. array implimentation\n");
+                     printf("2. linked list implemantion\n");
+                     printf("enter your choice:\n");
+                     scanf("%d",&choice);
+                     switch(choice){
+                          case 1:
+                             array_tree_traversal();
+                             break;
+                          case 2:
+                             linked_list_tree_traversal();
+                             break;
+                     }break;
+                 case 3:
+                    BinarySearchTest();
+                    break;
+                 case 4:
+                     printf("1. preorder traversal\n");
+                     printf("2. postorder traversal\n");
+                     printf("3. copy binary search\n");
+                     printf("4. compare binary tree\n");
+                     printf("5. threaded binary tree\n");
+                     printf("enter your choice\n");
+                     scanf("%d",&choice);
+                     switch(choice){
+                          case 1:
+                            preorder_test();
+                            break;
+                          case 2:
+                            postorder_test();
+                            break;
+                          case 3:
+                            copyTree_test();
+                            break;
+                          case 4:
+                            compareTree_test();
+                            break;
+                          case 5:
+                            threadedTree_test();
+                            break;
+                     }break;
+             }break;
+       case 5:
+           
+     }
+
+}
