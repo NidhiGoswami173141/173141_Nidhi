@@ -1,0 +1,294 @@
+/* client.c
+Author      : Nidhi Goswami
+Date        : 15-04-2026
+Description : Client process for IPC Chat Application.
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <string.h>
+#include <signal.h>
+#include <pthread.h>
+#include <errno.h>
+#include<sys/socket.h>
+#include<netinet/in.h>
+#include<arpa/inet.h>
+//#define SERVER_FIFO "server_pipe"
+#define SERVER_ADDR "127.0.0.1"
+#define SERVER_PORT 5000
+#define BUFFER_SIZE 1024
+
+//char fifo_name[100];
+int server_socket = -1;
+char username_global[50];
+char input_buffer[256] = "";
+
+typedef struct {
+    char username[50];
+    char message[256];
+    char target[50];
+    int type;
+} Packet;
+
+void* send_thread(void *arg)
+{
+    Packet pkt;
+    while (1) {
+        printf("> ");
+        fflush(stdout);
+	//printf(stdout);
+
+        if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL)
+            continue;
+
+        input_buffer[strcspn(input_buffer, "\n")] = 0;
+        if (strlen(input_buffer) == 0)
+            continue;
+
+        strcpy(pkt.username, (char*)arg);
+        pkt.type = 1;
+        strcpy(pkt.target, "ALL");
+        strcpy(pkt.message, input_buffer);
+
+        if (input_buffer[0] == '@') {
+            char *space = strchr(input_buffer, ' ');
+            if (space != NULL) {
+                int len = space - input_buffer - 1;
+                if (len > 0 && len < 49) {
+                    strncpy(pkt.target, input_buffer + 1, len);
+                    pkt.target[len] = '\0';
+                    strcpy(pkt.message, space + 1);
+                }
+            }
+        }
+
+       // int fd = open(SERVER_FIFO, O_WRONLY | O_NONBLOCK);
+        /*if (fd >= 0) {
+            write(fd, &pkt, sizeof(pkt));
+            close(fd);
+        }*/
+      if(send(server_socket, &pkt , sizeof(pkt),0)<0){
+         perror("send");
+       //  break;
+         continue;
+      }
+    }
+    return NULL;
+}
+
+void* receive_thread(void *arg)
+{
+    Packet pkt;
+    //int fd = open(fifo_name, O_RDONLY);
+    int history_started = 0;
+
+    while (1) {
+      //  ssize_t bytes = read(fd, &pkt, sizeof(pkt));
+        ssize_t bytes = recv(server_socket, &pkt, sizeof(pkt),0);
+
+       /* if (bytes == 0) {
+            close(fd);
+            fd = open(fifo_name, O_RDONLY);
+            continue;
+        }*/
+       /* if(bytes <= 0){
+          printf("\n[system]:connetction to server lost\n");
+          break;
+        }*/
+
+        if(bytes <= 0)
+        {
+            printf("\n[SYSTEM]: Connection lost\n");
+
+            close(server_socket);
+
+            while(1)
+            {
+               printf("[SYSTEM]: Trying to reconnect...\n");
+
+               server_socket = connect_to_server();
+
+            if(server_socket >= 0)
+            {
+               printf("[SYSTEM]: Reconnected successfully\n");
+
+               Packet join_pkt = {0};
+
+               strcpy(join_pkt.username, username_global);
+               strcpy(join_pkt.message, "JOIN");
+               strcpy(join_pkt.target, "ALL");
+               join_pkt.type = 0;
+
+               send(server_socket, &join_pkt,sizeof(join_pkt),0);
+
+            break;
+            }
+
+            sleep(2);
+        }
+
+        continue;
+       }
+
+        if (bytes > 0) {
+            if (strcmp(pkt.username, "HISTORY") == 0) {
+                if (!history_started) {
+                    printf("\n------ CHAT HISTORY ------\n");
+                    history_started = 1;
+                }
+                printf("%s", pkt.message);
+            } else {
+                printf("%s: %s\n", pkt.username, pkt.message);
+            }
+            fflush(stdout);
+        }
+    }
+    return NULL;
+}
+
+void handle_exit(int sig)
+{
+    /*Packet pkt = {0};
+    strcpy(pkt.username, username_global);
+    strcpy(pkt.message, "EXIT");
+    strcpy(pkt.target, "ALL");
+    pkt.type = 2;
+
+    //int fd = open(SERVER_FIFO, O_WRONLY | O_NONBLOCK);
+    if (fd >= 0) {
+        write(fd, &pkt, sizeof(pkt));
+        close(fd);
+    }
+
+    //unlink(fifo_name);
+    printf("\nExiting...\n");
+    exit(0);*/
+    if(server_socket>=0){
+       close(server_socket);
+    }
+    printf("\nexiting...\n");
+    exit(0);
+}
+int connect_to_server()
+{
+    int sock;
+    struct sockaddr_in server_addr = {0};
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0) {
+        return -1;
+    }
+
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(SERVER_PORT);
+
+    if (inet_pton(AF_INET, SERVER_ADDR,
+                  &server_addr.sin_addr) <= 0) {
+        close(sock);
+        return -1;
+    }
+
+    if (connect(sock,(struct sockaddr *)&server_addr,sizeof(server_addr)) < 0) {
+        close(sock);
+        return -1;
+    }
+
+    return sock;
+}
+int main() {
+    setbuf(stdout, NULL);
+
+    char username[50];
+    fflush(stdout);
+    fgets(username, sizeof(username), stdin);
+    username[strcspn(username, "\n")] = 0;
+
+    if (strlen(username) == 0) {
+        strcpy(username, "user");
+    }
+
+    strcpy(username_global, username);
+
+    signal(SIGINT, handle_exit);
+
+    /*pid_t pid = getpid();
+    sprintf(fifo_name, "client_%d_fifo", pid);
+
+    if (mkfifo(fifo_name, 0666) == -1 && errno != EEXIST) {
+        perror("mkfifo client");
+    }
+
+    Packet pkt = {0};
+    strcpy(pkt.username, username);
+    sprintf(pkt.message, "%d %s", pid, fifo_name);
+    pkt.type = 0;
+
+    int fd = open(SERVER_FIFO, O_WRONLY | O_NONBLOCK);
+    if (fd < 0) {
+        printf("[SYSTEM]: Server not available. Please start server first.\n");
+        unlink(fifo_name);
+        exit(1);
+    }
+
+    write(fd, &pkt, sizeof(pkt));
+    close(fd);*/
+        /* Create socket for connection to server */
+ /*   server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_socket < 0) {
+        perror("socket");
+        exit(1);
+    }
+
+    // Set up server address 
+    struct sockaddr_in server_addr = {0};
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(SERVER_PORT);
+
+    // Convert IP address 
+    if (inet_pton(AF_INET, SERVER_ADDR, &server_addr.sin_addr) <= 0) {
+        fprintf(stderr, "Invalid server address\n");
+        close(server_socket);
+        exit(1);
+    }
+
+    //Connect to server 
+    if (connect(server_socket, (struct sockaddr *)&server_addr, 
+                sizeof(server_addr)) < 0) {
+        printf("[SYSTEM]: Server not available. Please start server first.\n");
+        close(server_socket);
+        exit(1);
+    }*/
+
+    /* Send username as first message */
+
+    server_socket = connect_to_server();
+
+    if (server_socket < 0) {
+        printf("[SYSTEM]: Server not available. Please start server first.\n");
+        exit(1);
+    }
+
+    Packet pkt = {0};
+    strcpy(pkt.username, username);
+    strcpy(pkt.message, "JOIN");
+    pkt.type = 0;
+    if (send(server_socket, &pkt, sizeof(pkt), 0) < 0) {
+        perror("send join");
+        close(server_socket);
+        exit(1);
+    }
+
+    printf("[SYSTEM]: Connected to server as '%s'\n", username);
+
+    pthread_t send_tid, recv_tid;
+    pthread_create(&send_tid, NULL, send_thread, username);
+    pthread_create(&recv_tid, NULL, receive_thread, NULL);
+
+    pthread_join(send_tid, NULL);
+    pthread_join(recv_tid, NULL);
+    close(server_socket);
+    return 0;
+}
