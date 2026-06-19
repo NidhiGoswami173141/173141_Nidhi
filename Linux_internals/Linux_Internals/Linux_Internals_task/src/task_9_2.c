@@ -8,19 +8,20 @@ process. The program takes the pid of the process as a command line argument.
 #include <stdlib.h>
 #include <string.h>
 #include"header.h"
+#include <unistd.h>
 
-void cmdline(char *pid)
+
+void command_line(char *pid)
 {
     char path[100];
-    char buf[1024];
-
-    FILE *fp;
+    char buffer[4096];
 
 
     sprintf(path,"/proc/%s/cmdline",pid);
 
 
-    fp=fopen(path,"r");
+    FILE *fp=fopen(path,"r");
+
 
     if(fp==NULL)
     {
@@ -29,12 +30,29 @@ void cmdline(char *pid)
     }
 
 
-    fread(buf,sizeof(char),sizeof(buf),fp);
+    int n=fread(buffer,1,sizeof(buffer)-1,fp);
+
+    buffer[n]='\0';
 
 
-    printf("\n---- Command line ----\n");
+    printf("\n===== COMMAND LINE =====\n");
 
-    printf("%s\n",buf);
+
+    /*
+       cmdline separates arguments by NULL,
+       replace NULL by space
+    */
+
+    for(int i=0;i<n;i++)
+    {
+        if(buffer[i]=='\0')
+            printf(" ");
+        else
+            printf("%c",buffer[i]);
+    }
+
+
+    printf("\n");
 
 
     fclose(fp);
@@ -42,19 +60,19 @@ void cmdline(char *pid)
 
 
 
-void cpu_time(char *pid)
+
+
+void process_stat(char *pid)
 {
+
     char path[100];
-    char line[1024];
-
-
-    FILE *fp;
+    char buffer[4096];
 
 
     sprintf(path,"/proc/%s/stat",pid);
 
 
-    fp=fopen(path,"r");
+    FILE *fp=fopen(path,"r");
 
 
     if(fp==NULL)
@@ -64,86 +82,93 @@ void cpu_time(char *pid)
     }
 
 
-    fgets(line,sizeof(line),fp);
+    fgets(buffer,sizeof(buffer),fp);
 
 
-    /*
-       /proc/pid/stat format:
+    fclose(fp);
 
-       field 14 = user time
-       field 15 = kernel time
-    */
 
 
     char comm[200];
     char state;
 
-    unsigned long user, kernel;
+
+    unsigned long utime;
+    unsigned long stime;
+
+    long priority;
+    unsigned long vsize;
 
 
-    sscanf(line,"%*d %s %c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu",comm,&state,&user,&kernel);
+    /*
+    /proc/pid/stat format:
+
+    pid
+    comm
+    state
+    ...
+    utime
+    stime
+    ...
+    */
+
+    sscanf(buffer, "%*d %s %c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu",comm,&state,&utime,&stime);
+
+    printf("\n===== PROCESS TIME =====\n");
+
+
+    printf("Process state : %c\n",state);
+
+
+    printf("User mode time   : %lu ticks\n",utime);
+
+    printf("Kernel mode time : %lu ticks\n",stime);
 
 
 
-    printf("\n---- CPU Time ----\n");
-
-    printf("User mode time   : %lu\n",user);
-
-    printf("Kernel mode time : %lu\n",kernel);
+    printf("\nRunning time + Waiting time information\n");
 
 
-    fclose(fp);
-}
+    char sched[100];
 
-void sched_info(char *pid)
-{
-    char path[100];
-
-    FILE *fp;
+    sprintf(sched,"/proc/%s/schedstat",pid);
 
 
-    sprintf(path,"/proc/%s/schedstat",pid);
+    fp=fopen(sched,"r");
 
 
-    fp=fopen(path,"r");
-
-
-    if(fp==NULL)
+    if(fp)
     {
-        perror("schedstat");
-        return;
+        unsigned long run,wait;
+
+
+        fscanf(fp,"%lu %lu",&run,&wait);
+
+
+        printf("Running time : %lu ns\n",run);
+
+        printf("Waiting time : %lu ns\n",wait);
+
+
+        fclose(fp);
     }
 
 
-    unsigned long run, wait, slice;
-
-
-    fscanf(fp,"%lu %lu %lu",&run,&wait,&slice);
-
-    printf("\n---- Scheduling Information ----\n");
-
-    printf("Running time : %lu\n",run);
-
-    printf("Waiting time : %lu\n",wait);
-
-
-
-    fclose(fp);
 }
+
 
 void environment(char *pid)
 {
+
     char path[100];
-    char buf[200];
 
-
-    FILE *fp;
+    char buffer[4096];
 
 
     sprintf(path,"/proc/%s/environ",pid);
 
 
-    fp=fopen(path,"r");
+    FILE *fp=fopen(path,"r");
 
 
     if(fp==NULL)
@@ -153,39 +178,43 @@ void environment(char *pid)
     }
 
 
-    printf("\n---- Environment ----\n");
+    printf("\n===== ENVIRONMENT =====\n");
 
 
-    while(fread(buf,1,sizeof(buf)-1,fp))
+    int n;
+
+
+    while((n=fread(buffer,1,sizeof(buffer),fp))>0)
     {
-        for(int i=0;i<sizeof(buf);i++)
+
+        for(int i=0;i<n;i++)
         {
-            if(buf[i]=='\0')
-                buf[i]='\n';
+            if(buffer[i]=='\0')
+                printf("\n");
+            else
+                printf("%c",buffer[i]);
         }
 
-        printf("%s",buf);
     }
 
 
     fclose(fp);
+
 }
-
-
 
 void address_space(char *pid)
 {
+
     char path[100];
-    char line[300];
 
-
-    FILE *fp;
+    char line[512];
 
 
     sprintf(path,"/proc/%s/maps",pid);
 
 
-    fp=fopen(path,"r");
+
+    FILE *fp=fopen(path,"r");
 
 
     if(fp==NULL)
@@ -195,7 +224,8 @@ void address_space(char *pid)
     }
 
 
-    printf("\n---- Address Space ----\n");
+
+    printf("\n===== ADDRESS SPACE =====\n");
 
 
     while(fgets(line,sizeof(line),fp))
@@ -205,31 +235,97 @@ void address_space(char *pid)
 
 
     fclose(fp);
+
 }
 
 
-
-void process_info(int argc,char *argv[])
+void process_info()
 {
+    char pid[20];
+    int choice;
 
-    if(argc != 2)
+
+    printf("Enter PID: ");
+    scanf("%s", pid);
+
+
+
+    printf("\n===== PROCESS INFORMATION MENU =====\n");
+
+    printf("1. Command Line\n");
+    printf("2. Process Time (stat + schedstat)\n");
+    printf("3. Environment\n");
+    printf("4. Address Space (maps)\n");
+    printf("5. All Information\n");
+    printf("0. Exit\n");
+
+
+    printf("\nEnter choice: ");
+    scanf("%d",&choice);
+
+
+
+    switch(choice)
     {
-        printf("Usage: %s <pid>\n",argv[0]);
-        return 1;
+
+        case 1:
+
+            command_line(pid);
+
+            break;
+
+
+
+        case 2:
+
+            process_stat(pid);
+
+            break;
+
+
+
+        case 3:
+
+            environment(pid);
+
+            break;
+
+
+
+        case 4:
+
+            address_space(pid);
+
+            break;
+
+
+
+        case 5:
+
+            command_line(pid);
+
+            process_stat(pid);
+
+            environment(pid);
+
+            address_space(pid);
+
+            break;
+
+
+
+        case 0:
+
+            printf("Exit\n");
+
+            break;
+
+
+
+        default:
+
+            printf("Invalid choice\n");
+
     }
 
-
-
-    char *pid = argv[3];
-
-
-    cmdline(pid);
-
-    sched_info(pid);
-
-    cpu_time(pid);
-
-    environment(pid);
-
-    address_space(pid);
 }

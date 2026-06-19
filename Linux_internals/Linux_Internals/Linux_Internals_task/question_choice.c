@@ -170,6 +170,9 @@ void question_choice(int argc, char *argv[])
                  case 1:
                     cpu_info();
                     break;
+                 case 2:
+                    process_info();
+                    break;
              }break;
 
         default:

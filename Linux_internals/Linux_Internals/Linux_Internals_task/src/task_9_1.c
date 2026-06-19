@@ -9,41 +9,59 @@ Description:SystemInfo.c Read information from /proc filesystem
 #include <string.h>
 #include <time.h>
 #include"header.h"
+
 void cpu()
 {
     FILE *fp;
-    char line[200];
-    int count=0, cores=0;
+    char line[256];
 
-    fp=fopen("/proc/cpuinfo","r");
+    int cpus = 0;
+    int cores = 0;
+    double mhz = 0;
 
-    if(fp==NULL)
+
+    fp = fopen("/proc/cpuinfo", "r");
+
+    if(fp == NULL)
     {
         perror("cpuinfo");
         return;
     }
 
-    printf("\nCPU information\n");
 
-    while(fgets(line,sizeof(line),fp))
+    while(fgets(line, sizeof(line), fp))
     {
-        if(strstr(line,"processor"));
-            count++;
 
-        if(strstr(line,"cpu cores"));
+        if(strncmp(line,"processor",9)==0)
+            cpus++;
+
+
+        if(strncmp(line,"cpu MHz",7)==0)
+        {
+            sscanf(line,"cpu MHz : %lf",&mhz);
+        }
+
+
+        if(strncmp(line,"cpu cores",9)==0)
+        {
             sscanf(line,"cpu cores : %d",&cores);
+        }
 
-        if(strstr(line,"cpu MHz"))
-            printf("%s",line);
     }
 
-    printf("CPUs : %d\n",count);
-    printf("Cores : %d\n",cores);
 
     fclose(fp);
+
+
+    printf("\nCPU INFORMATION\n");
+
+    printf("Number of CPUs : %d\n",cpus);
+
+    printf("Clock Speed    : %.2lf MHz\n",mhz);
+
+    printf("Number of cores: %d\n",cores);
+
 }
-
-
 
 void kernel()
 {
@@ -65,28 +83,35 @@ void kernel()
 void boot()
 {
     FILE *fp;
-    double uptime;
+    char line[256];
 
-    fp = fopen("/proc/uptime","r");
+    long boot=0;
 
-    if(fp == NULL)
+
+    fp=fopen("/proc/stat","r");
+
+
+    while(fgets(line,sizeof(line),fp))
     {
-        perror("uptime");
-        return;
+        if(strncmp(line,"btime",5)==0)
+        {
+            sscanf(line,"btime %ld",&boot);
+            break;
+        }
     }
 
-
-    fscanf(fp,"%lf",&uptime);
 
     fclose(fp);
 
 
-    long seconds = (long)uptime;
+
+    time_t t=boot;
 
 
-    printf("\nSystem running time\n");
+    printf("\nBOOT TIME\n");
 
-    printf("%ld days %ld hours %ld minutes %ld seconds\n",seconds/86400,(seconds%86400)/3600,(seconds%3600)/60,seconds%60);
+    printf("System booted at : %s",ctime(&t));
+
 }
 
 void load()
@@ -121,11 +146,11 @@ void memory()
 
     while(fgets(line,sizeof(line),fp))
     {
-        if(strstr(line,"MemTotal"))
+        if(strncmp(line,"MemTotal",8)==0)
             sscanf(line,"MemTotal: %ld",&total);
 
 
-        if(strstr(line,"MemAvailable"))
+        if(strncmp(line,"MemAvailable",12)==0)
             sscanf(line,"MemAvailable: %ld",&free);
     }
 
@@ -154,10 +179,10 @@ void swap()
 
     while(fgets(line,sizeof(line),fp))
     {
-        if(strstr(line,"SwapTotal"))
+        if(strncmp(line,"SwapTotal",9)==0)
             sscanf(line,"SwapTotal: %ld",&total);
 
-        if(strstr(line,"SwapFree"))
+        if(strncmp(line,"SwapFree",8)==0)
             sscanf(line,"SwapFree: %ld",&free);
     }
 
@@ -195,7 +220,7 @@ void cpu_time()
     FILE *fp;
     char line[200];
 
-    unsigned long user,system,nice;
+    unsigned long user,system;
 
 
     fp=fopen("/proc/stat","r");
@@ -203,7 +228,7 @@ void cpu_time()
 
     fgets(line,sizeof(line),fp);
 
-    sscanf(line , "cpu %lu %lu %lu", &user , &nice , &system);
+    sscanf(line , "cpu %lu %lu", &user ,&system);
 
     printf("\nCPU time\n");
 
@@ -243,46 +268,25 @@ void context()
 void interrupt()
 {
     FILE *fp;
-    char line[300];
+    char line[200];
 
-    long total=0;
-    long value;
+    int total=0;
 
 
     fp=fopen("/proc/interrupts","r");
 
-    if(fp==NULL)
-    {
-        perror("interrupts");
-        return;
-    }
-
 
     while(fgets(line,sizeof(line),fp))
     {
-        char *p=line;
-
-
-        while(*p)
-        {
-            if(sscanf(p,"%ld",&value)==1)
-            {
-                total += value;
-                break;
-            }
-
-            p++;
-        }
+        total++;
     }
 
 
+    printf("\nInterrupts handled : %d lines\n",total);
+
+
     fclose(fp);
-
-
-    printf("\nInterrupts handled\n");
-    printf("Total interrupts : %ld\n",total);
 }
-
 
 void cpu_info()
 {

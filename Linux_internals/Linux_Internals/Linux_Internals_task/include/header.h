@@ -21,4 +21,5 @@ void ls_command_f();
 void cal_size_of_all();
 void cal_size_of_all_file_folder(int argc, char *argv[]);
 void cpu_info();
+void process_info();
 #endif
